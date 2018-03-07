@@ -13,6 +13,7 @@ import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
 import com.ca.client.portal.ex.PortalAPIRuntimeException;
+import com.ca.client.portal.util.PortalUtil;
 
 @Component
 public class DefaultPortalAPIClient {
@@ -33,6 +34,28 @@ public class DefaultPortalAPIClient {
 		}
 		return response;
 	}
+	
+	public String getAllAPIs(String url, String token) {
+		String response = null;
+		try {
+			response = httpGet(url, token).getBody();
+		} catch(HttpStatusCodeException e) {
+			logAndThrowError(e);
+		}
+		return response;
+	}
+	
+	public String getAPIMetaData(String url, String token) {
+		String apiMetaData = null;
+		try {
+			String response = getAllAPIs(url, token);
+			apiMetaData = portalUtil.getAPIMetaData(response);
+		} catch(HttpStatusCodeException e) {
+			logAndThrowError(e);
+		}
+		return apiMetaData;
+	}
+		
 
 	public String getAPISpec(String url, String token) {
 		String response = null;

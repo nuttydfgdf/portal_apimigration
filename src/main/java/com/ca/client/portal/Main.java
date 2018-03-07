@@ -1,5 +1,6 @@
 package com.ca.client.portal;
 
+import java.io.Console;
 import java.security.cert.X509Certificate;
 
 import javax.net.ssl.SSLContext;
@@ -20,9 +21,11 @@ import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
 import com.ca.client.config.ConfigProperties;
+import com.ca.client.portal.util.CryptoUtil;
 
 @SpringBootApplication
 @EnableConfigurationProperties(ConfigProperties.class)
@@ -64,7 +67,20 @@ public class Main {
 	@Bean
 	public CommandLineRunner run(RestTemplate restTemplate) throws Exception {
 		return args -> {
-			migrationUtil.run();
+			if (args.length == 0 || StringUtils.isEmpty(args[0])) {
+				log.error("\r\nCommands:\r\nencodePassword\r\nlistAPIs\r\nmigrate");
+			} else {
+				String command = args[0];
+				if("encodePassword".equalsIgnoreCase(command)) {
+					migrationUtil.encodePassword();
+				} else if("migrate".equalsIgnoreCase(command)) {
+					migrationUtil.runMigration();
+				} else if("listAPIs".equalsIgnoreCase(command)) {
+					migrationUtil.listAPIMetaData();
+				} else {
+					log.error("\r\nCommands:\r\nencodePassword\r\nlistAPIs\r\nmigrate");
+				}
+			}
 		};
 	}
 

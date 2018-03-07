@@ -1,4 +1,4 @@
-package com.ca.client.portal;
+package com.ca.client.portal.util;
 
 import java.io.IOException;
 import java.util.Base64;
@@ -16,6 +16,7 @@ import com.ca.client.portal.ex.PortalAPIRuntimeException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 @Component
@@ -100,6 +101,29 @@ public class PortalUtil {
 			throw new PortalAPIRuntimeException(e.getMessage());
 		}
 		return postData;
+	}
+	
+	public String getAPIMetaData(String apisPayload) {
+		StringBuffer apiMetaData = new StringBuffer("\r\n");
+		ObjectMapper mapper = new ObjectMapper();
+		String name="";
+		String uuid="";
+		try {
+			ArrayNode rootArrayNode = (ArrayNode)mapper.readTree(apisPayload);
+			if(rootArrayNode.isArray() && rootArrayNode.has(0)) {
+				for(JsonNode item : rootArrayNode) {
+					name = item.get("Name").asText().replaceAll("\"", "");
+					uuid = item.get("Uuid").asText().replaceAll("\"", "");
+					apiMetaData.append(String.format("%-60s", name))
+						.append(uuid)
+						.append("\r\n"); 
+				}
+			}
+		} catch (IOException e) {
+			log.error("Error retrieving API metadata: {}", e.getMessage());
+			throw new PortalAPIRuntimeException(e.getMessage());
+		}
+		return apiMetaData.toString();
 	}
 	
 	public String getAccessToken(String tokenPayload) {
