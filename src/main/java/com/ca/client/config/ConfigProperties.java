@@ -11,8 +11,6 @@ import org.springframework.validation.annotation.Validated;
 public class ConfigProperties {
 	@NotEmpty
 	private String apiUuids;
-	@NotEmpty
-	private String tokenUrl;
 	@Valid
 	private Src src = new Src();
 	@Valid
@@ -24,14 +22,6 @@ public class ConfigProperties {
 
 	public void setApiUuids(String apiUuids) {
 		this.apiUuids = apiUuids;
-	}
-	
-	public String getTokenUrl() {
-		return tokenUrl;
-	}
-
-	public void setTokenUrl(String tokenUrl) {
-		this.tokenUrl = tokenUrl;
 	}
 
 	public Src getSrc() {
@@ -57,6 +47,8 @@ public class ConfigProperties {
 		private String clientId;
 		@NotEmpty
 		private String clientSecret;
+		@NotEmpty
+		private String tokenUrl;
 
 		public String getUrl() {
 			return url;
@@ -81,6 +73,15 @@ public class ConfigProperties {
 		public void setClientSecret(String clientSecret) {
 			this.clientSecret = clientSecret;
 		}
+
+		public String getTokenUrl() {
+			return tokenUrl;
+		}
+
+		public void setTokenUrl(String tokenUrl) {
+			this.tokenUrl = tokenUrl;
+		}
+		
 	}
 	
 	public class Dst {
@@ -88,7 +89,7 @@ public class ConfigProperties {
 		private String url;
 		@NotEmpty
 		private String apiEulaUuid;
-		@NotEmpty
+		//@NotEmpty
 		private String proxyUuid;
 		@NotEmpty
 		private String proxyUrl;
@@ -96,6 +97,8 @@ public class ConfigProperties {
 		private String clientId;
 		@NotEmpty
 		private String clientSecret;
+		@NotEmpty
+		private String tokenUrl;
 		
 		public String getUrl() {
 			return url;
@@ -133,6 +136,13 @@ public class ConfigProperties {
 		public void setProxyUrl(String proxyUrl) {
 			this.proxyUrl = proxyUrl;
 		}
+		public String getTokenUrl() {
+			return tokenUrl;
+		}
+		public void setTokenUrl(String tokenUrl) {
+			this.tokenUrl = tokenUrl;
+		}
+		
 	}
 	
 }

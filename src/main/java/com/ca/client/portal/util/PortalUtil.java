@@ -26,6 +26,21 @@ public class PortalUtil {
 	@Autowired
 	ConfigProperties props;
 	
+	public boolean isPortalPublishedAPI(String apiPayload) {
+		boolean isPortalPublished = false;
+		ObjectMapper mapper = new ObjectMapper();
+		try {
+			JsonNode rootNode = mapper.readTree(apiPayload);
+			isPortalPublished = rootNode.get("PublishedByPortal").asBoolean();
+			log.debug("Is Published by Portal: {}", isPortalPublished);
+
+		} catch (IOException e) {
+			log.error("Error preparing POST data for new API: {}", e.getMessage());
+			throw new PortalAPIRuntimeException(e.getMessage());
+		}
+		return isPortalPublished;
+	}
+	
 	public String prepareCreateOrUpdateAPIPayLoad(String apiPayload, String apiSpecPayload, String apiEulaUuid, boolean apiExists) {
 		String postData = "";
 		try {
@@ -53,8 +68,10 @@ public class PortalUtil {
 			//Check if it is gateway published
 			/*
 			boolean isPublishedByPortal = rootNode.get("PublishedByPortal").asBoolean();
-			log.info("Is Published by Portal: {}", isPublishedByPortal);
-			
+			log.debug("Is Published by Portal: {}", isPublishedByPortal);
+			if(!isPublishedByPortal) {
+				throw new PortalAPIRuntimeException("Gateway Published APIs are not supported. Use GMU to migrate service and enable from Portal.");
+			}
 			if(!isPublishedByPortal) {
 				objectNode.put("PublishedByPortal", false);
 				String apiLocationUrl = rootNode.get("ApiLocationUrl").asText();
@@ -104,19 +121,27 @@ public class PortalUtil {
 	}
 	
 	public String getAPIMetaData(String apisPayload) {
-		StringBuffer apiMetaData = new StringBuffer("\r\n");
+		String newLine = System.getProperty("line.separator");
+		StringBuffer apiMetaData = new StringBuffer(newLine);
 		ObjectMapper mapper = new ObjectMapper();
 		String name="";
 		String uuid="";
+		boolean isPublishedByPortal = false;
+		
+		apiMetaData.append(String.format("%-40s", "API")).append(String.format("%-45s", "UUID")).append("PORTAL PUBLISHED").append(newLine);
+		apiMetaData.append(String.format("%-40s", "----")).append(String.format("%-45s", "-----")).append("----------------").append(newLine);
+		
 		try {
 			ArrayNode rootArrayNode = (ArrayNode)mapper.readTree(apisPayload);
 			if(rootArrayNode.isArray() && rootArrayNode.has(0)) {
 				for(JsonNode item : rootArrayNode) {
 					name = item.get("Name").asText().replaceAll("\"", "");
 					uuid = item.get("Uuid").asText().replaceAll("\"", "");
-					apiMetaData.append(String.format("%-60s", name))
-						.append(uuid)
-						.append("\r\n"); 
+					isPublishedByPortal = item.get("PublishedByPortal").asBoolean();
+					apiMetaData.append(String.format("%-40s", name))
+						.append(String.format("%-45s", uuid))
+						.append(String.valueOf(isPublishedByPortal))
+						.append(newLine);
 				}
 			}
 		} catch (IOException e) {
@@ -124,6 +149,63 @@ public class PortalUtil {
 			throw new PortalAPIRuntimeException(e.getMessage());
 		}
 		return apiMetaData.toString();
+	}
+	
+	public String getAPIEulaMetaData(String apiEulaPayload) {
+		String newLine = System.getProperty("line.separator");
+		StringBuffer apiEulaMetaData = new StringBuffer(newLine);
+		ObjectMapper mapper = new ObjectMapper();
+		String name="";
+		String uuid="";
+		
+		apiEulaMetaData.append(String.format("%-30s", "EULA Name")).append(String.format("%-45s", "UUID")).append(newLine);
+		apiEulaMetaData.append(String.format("%-30s", "---------")).append(String.format("%-45s", "-----")).append(newLine);
+		try {
+			ArrayNode rootArrayNode = (ArrayNode)mapper.readTree(apiEulaPayload);
+			if(rootArrayNode.isArray() && rootArrayNode.has(0)) {
+				for(JsonNode item : rootArrayNode) {
+					name = item.get("Name").asText().replaceAll("\"", "");
+					uuid = item.get("Uuid").asText().replaceAll("\"", "");
+					apiEulaMetaData.append(String.format("%-30s", name))
+					.append(String.format("%-45s", uuid))
+					.append(newLine); 
+				}
+			}
+		} catch (IOException e) {
+			log.error("Error retrieving APIEula metadata: {}", e.getMessage());
+			throw new PortalAPIRuntimeException(e.getMessage());
+		}
+		return apiEulaMetaData.toString();
+	}
+	
+	public String getProxyMetaData(String proxiesPayload) {
+		String newLine = System.getProperty("line.separator");
+		StringBuffer proxyMetaData = new StringBuffer(newLine);
+		ObjectMapper mapper = new ObjectMapper();
+		String name="";
+		String uuid="";
+		String deploymentType="";
+		
+		proxyMetaData.append(String.format("%-30s", "Proxy")).append(String.format("%-45s", "UUID")).append("DEPLOYMENT TYPE").append(newLine);
+		proxyMetaData.append(String.format("%-30s", "----")).append(String.format("%-45s", "-----")).append("----------------").append(newLine);
+		try {
+			ArrayNode rootArrayNode = (ArrayNode)mapper.readTree(proxiesPayload);
+			if(rootArrayNode.isArray() && rootArrayNode.has(0)) {
+				for(JsonNode item : rootArrayNode) {
+					name = item.get("name").asText().replaceAll("\"", "");
+					uuid = item.get("uuid").asText().replaceAll("\"", "");
+					deploymentType = item.get("deploymentType").asText().replaceAll("\"", "");
+					proxyMetaData.append(String.format("%-30s", name))
+					.append(String.format("%-45s", uuid))
+					.append(deploymentType)
+					.append(newLine); 
+				}
+			}
+		} catch (IOException e) {
+			log.error("Error retrieving Proxy metadata: {}", e.getMessage());
+			throw new PortalAPIRuntimeException(e.getMessage());
+		}
+		return proxyMetaData.toString();
 	}
 	
 	public String getAccessToken(String tokenPayload) {

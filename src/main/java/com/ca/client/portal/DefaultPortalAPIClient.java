@@ -25,7 +25,8 @@ public class DefaultPortalAPIClient {
 	@Autowired
 	PortalUtil portalUtil;
 
-	public String getAPI(String url, String token) {
+	/*	
+	public String getAllAPIs(String url, String token) {
 		String response = null;
 		try {
 			response = httpGet(url, token).getBody();
@@ -35,7 +36,18 @@ public class DefaultPortalAPIClient {
 		return response;
 	}
 	
-	public String getAllAPIs(String url, String token) {
+	public String getAllProxies(String url, String token) {
+		String response = null;
+		try {
+			response = httpGet(url, token).getBody();
+		} catch(HttpStatusCodeException e) {
+			logAndThrowError(e);
+		}
+		return response;
+	}
+	*/
+	
+	public String getAPI(String url, String token) {
 		String response = null;
 		try {
 			response = httpGet(url, token).getBody();
@@ -48,12 +60,34 @@ public class DefaultPortalAPIClient {
 	public String getAPIMetaData(String url, String token) {
 		String apiMetaData = null;
 		try {
-			String response = getAllAPIs(url, token);
+			String response = httpGet(url, token).getBody();
 			apiMetaData = portalUtil.getAPIMetaData(response);
 		} catch(HttpStatusCodeException e) {
 			logAndThrowError(e);
 		}
 		return apiMetaData;
+	}
+	
+	public String getAPIEulasMetaData(String url, String token) {
+		String apiEulaMetaData = null;
+		try {
+			String response = httpGet(url, token).getBody();
+			apiEulaMetaData = portalUtil.getAPIEulaMetaData(response);
+		} catch(HttpStatusCodeException e) {
+			logAndThrowError(e);
+		}
+		return apiEulaMetaData;
+	}
+	
+	public String getProxyMetaData(String url, String token) {
+		String proxyMetaData = null;
+		try {
+			String response = httpGet(url, token).getBody();
+			proxyMetaData = portalUtil.getProxyMetaData(response);
+		} catch(HttpStatusCodeException e) {
+			logAndThrowError(e);
+		}
+		return proxyMetaData;
 	}
 		
 

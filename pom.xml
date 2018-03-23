@@ -4,8 +4,8 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>com.ca.client.portal</groupId>
-	<artifactId>apimigration</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<artifactId>PortalMigrationUtil</artifactId>
+	<version>1.0</version>
 	<packaging>jar</packaging>
 
 	<name>portal_apimigration</name>
@@ -40,12 +40,10 @@
 		<dependency>
 			<groupId>org.apache.httpcomponents</groupId>
 			<artifactId>httpclient</artifactId>
-			<version>4.5.2</version>
 		</dependency>
 		<dependency>
 			<groupId>org.hibernate</groupId>
 			<artifactId>hibernate-validator</artifactId>
-			<version>5.4.1.Final</version>
 		</dependency>
 		<dependency>
 			<groupId>commons-cli</groupId>

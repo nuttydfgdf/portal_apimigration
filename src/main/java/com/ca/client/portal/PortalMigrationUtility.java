@@ -10,6 +10,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import com.ca.client.config.ConfigProperties;
+import com.ca.client.model.PortalAPIVO;
+import com.ca.client.portal.ex.PortalAPIRuntimeException;
 import com.ca.client.portal.util.CryptoUtil;
 import com.ca.client.portal.util.PortalUtil;
 
@@ -31,9 +33,10 @@ public class PortalMigrationUtility {
 	private boolean isInitialized = false;
 	
 	private void initializeTokens() {
-		String baseTokenUrl = props.getTokenUrl();
-		String srcTokenUrl = baseTokenUrl + "&client_id=" + props.getSrc().getClientId() + "&client_secret=" + CryptoUtil.decrypt(props.getSrc().getClientSecret());
-		String dstTokenUrl = baseTokenUrl + "&client_id=" + props.getDst().getClientId() + "&client_secret=" + CryptoUtil.decrypt(props.getDst().getClientSecret());
+		String srcBaseTokenUrl = props.getSrc().getTokenUrl();
+		String dstBaseTokenUrl = props.getDst().getTokenUrl();
+		String srcTokenUrl = srcBaseTokenUrl + "&client_id=" + props.getSrc().getClientId() + "&client_secret=" + CryptoUtil.decrypt(props.getSrc().getClientSecret());
+		String dstTokenUrl = dstBaseTokenUrl + "&client_id=" + props.getDst().getClientId() + "&client_secret=" + CryptoUtil.decrypt(props.getDst().getClientSecret());
 
 		log.debug("Started retreiving OAuth token for Source Portal");
 		this.srcToken = portalClient.getOAuthAccessToken(srcTokenUrl);
@@ -58,15 +61,46 @@ public class PortalMigrationUtility {
 		//System.out.println("Decrypted: " + CryptoUtil.decrypt(encryptedPassword, key));
 	}
 
-	public void listAPIMetaData() {
-		String srcApisUrl = props.getSrc().getUrl() + "/2.0/Apis";
-		if(!isInitialized) {
-			initializeTokens();
-		}
-		String apiMetaData = portalClient.getAPIMetaData(srcApisUrl, this.srcToken);
+	public void listAPIMetaData(String source) {
+		String apisUrlSuffix = "/2.0/Apis";
+		PortalAPIVO portalAPIVO = getPortalAPIVO(source, apisUrlSuffix);
+		String apiMetaData = portalClient.getAPIMetaData(portalAPIVO.getUrl(), portalAPIVO.getToken());
 		System.out.println(apiMetaData);
 	}
 	
+	public void listAPIEulasMetaData(String source) {
+		String apiEulasUrlSuffix = "/ApiEulas";
+		PortalAPIVO portalAPIVO = getPortalAPIVO(source, apiEulasUrlSuffix);
+		String apiEulaMetaData = portalClient.getAPIEulasMetaData(portalAPIVO.getUrl(), portalAPIVO.getToken());
+		System.out.println(apiEulaMetaData);
+	}
+	
+	public void listProxyMetaData(String source) {
+		String proxyUrlSuffix = "/deployments/1.0/proxies";
+		PortalAPIVO portalAPIVO = getPortalAPIVO(source, proxyUrlSuffix);
+		String proxyMetaData = portalClient.getProxyMetaData(portalAPIVO.getUrl(), portalAPIVO.getToken());
+		System.out.println(proxyMetaData);
+	}
+	
+	public PortalAPIVO getPortalAPIVO(String source, String apisUrlSuffix) {
+		String apisUrl = "";
+		String token = "";
+		if(!isInitialized) {
+			initializeTokens();
+		}
+		if("from".equalsIgnoreCase(source)) {
+			apisUrl = props.getSrc().getUrl() + apisUrlSuffix;
+			token = this.srcToken;
+		} else if("to".equalsIgnoreCase(source)) {
+			apisUrl = props.getDst().getUrl() + apisUrlSuffix;
+			token = this.dstToken;
+		}
+		PortalAPIVO portalAPIVO = new PortalAPIVO();
+		portalAPIVO.setUrl(apisUrl);
+		portalAPIVO.setToken(token);
+		return portalAPIVO;
+	}
+
 	public void runMigration() {
 		try {
 			if(!isInitialized) {
@@ -84,23 +118,27 @@ public class PortalMigrationUtility {
 	
 	private void migrateApi(String apiUuid) {
 		String srcBaseUrl = props.getSrc().getUrl();
-		String destBaseUrl = props.getDst().getUrl();
+		String dstBaseUrl = props.getDst().getUrl();
 		String proxyUuid = props.getDst().getProxyUuid();
 		String apiEulaUuid = props.getDst().getApiEulaUuid();
 		
 		String srcApiUrl = srcBaseUrl + "/2.0/Apis('"+ apiUuid + "')";
 		String srcApiSpecUrl = srcBaseUrl + "/2.0/Apis('" + apiUuid + "')/SpecContent";
-		String dstApiUrl = destBaseUrl + "/2.0/Apis('"+ apiUuid + "')";
-		String dstPostApiUrl = destBaseUrl + "/2.0/Apis";
-		String dstPostApiNewDeploymentUrl = destBaseUrl + "/deployments/1.0/apis/" + apiUuid + "/proxies";
-		String dstPostApiUpdateDeploymentStatusUrl = destBaseUrl + "/deployments/1.0/apis/" + apiUuid + "/proxies/" + proxyUuid;
-		String dstProxyUrl = destBaseUrl + "/deployments/1.0/proxies/" + props.getDst().getProxyUuid();
-		
+		String dstApiUrl = dstBaseUrl + "/2.0/Apis('"+ apiUuid + "')";
+		String dstPostApiUrl = dstBaseUrl + "/2.0/Apis";
+		//String dstPostApiNewDeploymentUrl = destBaseUrl + "/deployments/1.0/apis/" + apiUuid + "/proxies";
+		//String dstPostApiUpdateDeploymentStatusUrl = destBaseUrl + "/deployments/1.0/apis/" + apiUuid + "/proxies/" + proxyUuid;
+		//String dstProxyUrl = destBaseUrl + "/deployments/1.0/proxies/" + props.getDst().getProxyUuid();
 		String postAPIResponse = "";
+		
 		log.info("Started retreiving API data for uuid: {}", apiUuid);
 		String api = portalClient.getAPI(srcApiUrl, this.srcToken);
 		log.info("Finished retrieving API data for uuid: {}", apiUuid);
-		
+		// Check if PortalPublished API
+		boolean isPublishedByPortal = portalUtil.isPortalPublishedAPI(api);
+		if(!isPublishedByPortal) {
+			throw new PortalAPIRuntimeException("Gateway Published APIs are not supported. Use GMU to migrate service and enable from Portal.");
+		}
 		log.info("Started retrieving API Swagger Specs for uuid: {}", apiUuid);
 		String apiSpec = portalClient.getAPISpec(srcApiSpecUrl, this.srcToken);
 		log.info("Finished retrieving API Swagger Specs for uuid: {}", apiUuid);

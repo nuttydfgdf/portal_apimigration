@@ -1,10 +1,10 @@
 package com.ca.client.portal;
 
-import java.io.Console;
 import java.security.cert.X509Certificate;
 
 import javax.net.ssl.SSLContext;
 
+import org.apache.commons.cli.CommandLine;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.ssl.TrustStrategy;
@@ -25,7 +25,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
 import com.ca.client.config.ConfigProperties;
-import com.ca.client.portal.util.CryptoUtil;
+import com.ca.client.portal.util.CommandLineUtil;
 
 @SpringBootApplication
 @EnableConfigurationProperties(ConfigProperties.class)
@@ -34,6 +34,9 @@ public class Main {
 	
 	@Autowired
 	private PortalMigrationUtility migrationUtil;
+	
+	@Autowired
+	private CommandLineUtil commandLineUtil;
 
 	public static void main(String[] args) {
 		SpringApplication.run(Main.class, args);
@@ -68,20 +71,59 @@ public class Main {
 	public CommandLineRunner run(RestTemplate restTemplate) throws Exception {
 		return args -> {
 			if (args.length == 0 || StringUtils.isEmpty(args[0])) {
-				log.error("\r\nCommands:\r\nencodePassword\r\nlistAPIs\r\nmigrate");
+				printHelp();
 			} else {
-				String command = args[0];
-				if("encodePassword".equalsIgnoreCase(command)) {
-					migrationUtil.encodePassword();
-				} else if("migrate".equalsIgnoreCase(command)) {
-					migrationUtil.runMigration();
-				} else if("listAPIs".equalsIgnoreCase(command)) {
-					migrationUtil.listAPIMetaData();
+				CommandLine commandLine = commandLineUtil.generateCommandLine(args);
+				// "interrogation" stage of processing with Apache Commons CLI
+				if (commandLine != null) {
+					final boolean isEncPasswordOption = commandLine.hasOption(CommandLineUtil.ENCODE_PASSWORD_OPTION);
+					final boolean isListOption = commandLine.hasOption(CommandLineUtil.LIST_OPTION);
+					final boolean isMigrateOption = commandLine.hasOption(CommandLineUtil.MIGRATE_OPTION);
+					final boolean isTypeOption = commandLine.hasOption(CommandLineUtil.TYPE_OPTION);
+					final boolean isSourceOption = commandLine.hasOption(CommandLineUtil.SOURCE_OPTION);
+					
+					if(isEncPasswordOption) {
+						migrationUtil.encodePassword();
+					} else if(isMigrateOption) {
+						migrationUtil.runMigration();
+					} else if(isListOption) {
+						String typeOptionValue = StringUtils.trimWhitespace(commandLine.getOptionValue(CommandLineUtil.TYPE_OPTION));
+						String sourceOptionValue = StringUtils.trimWhitespace(commandLine.getOptionValue(CommandLineUtil.SOURCE_OPTION));
+						validateCommandOptions(isTypeOption, isSourceOption, typeOptionValue, sourceOptionValue);
+						
+						if("api".equalsIgnoreCase(typeOptionValue)) {
+							migrationUtil.listAPIMetaData(sourceOptionValue);
+						} else if("eula".equalsIgnoreCase(typeOptionValue)) {
+							migrationUtil.listAPIEulasMetaData(sourceOptionValue);
+						} else {
+							migrationUtil.listProxyMetaData(sourceOptionValue);
+						}
+					}
 				} else {
-					log.error("\r\nCommands:\r\nencodePassword\r\nlistAPIs\r\nmigrate");
+					printHelp();
 				}
 			}
 		};
+	}
+
+	private void validateCommandOptions(final boolean isTypeOption, final boolean isSourceOption,
+			String typeOptionValue, String sourceOptionValue) {
+		if (!isTypeOption || !isSourceOption) {
+			printHelp();
+		}
+		if(!("api".equalsIgnoreCase(typeOptionValue) || "proxy".equalsIgnoreCase(typeOptionValue) 
+				|| "eula".equalsIgnoreCase(typeOptionValue))) {
+			printHelp();
+		}
+		if(!("from".equalsIgnoreCase(sourceOptionValue) || "to".equalsIgnoreCase(sourceOptionValue))) {
+			printHelp();
+		}
+	}
+
+	private void printHelp() {
+		commandLineUtil.printUsage();
+		commandLineUtil.printHelp();
+		System.exit(-1);
 	}
 
 
