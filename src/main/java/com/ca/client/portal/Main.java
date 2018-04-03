@@ -1,6 +1,7 @@
 package com.ca.client.portal;
 
 import java.security.cert.X509Certificate;
+import java.util.Formatter;
 
 import javax.net.ssl.SSLContext;
 
@@ -37,6 +38,9 @@ public class Main {
 	
 	@Autowired
 	private CommandLineUtil commandLineUtil;
+	
+	@Autowired
+	private ConfigProperties props;
 
 	public static void main(String[] args) {
 		SpringApplication.run(Main.class, args);
@@ -86,12 +90,15 @@ public class Main {
 					if(isEncPasswordOption) {
 						migrationUtil.encodePassword();
 					} else if(isMigrateOutOption) {
+						validateApplicationProperties(CommandLineUtil.MIGRATE_OUT_OPTION, "");
 						runMigration(commandLine, CommandLineUtil.MIGRATE_OUT_OPTION);
 					} else if(isMigrateInOption) {
+						validateApplicationProperties(CommandLineUtil.MIGRATE_IN_OPTION, "");
 						runMigration(commandLine, CommandLineUtil.MIGRATE_IN_OPTION);
 					} else if(isListOption) {
 						String typeOptionValue = StringUtils.trimWhitespace(commandLine.getOptionValue(CommandLineUtil.TYPE_OPTION));
 						String sourceOptionValue = StringUtils.trimWhitespace(commandLine.getOptionValue(CommandLineUtil.SOURCE_OPTION));
+						validateApplicationProperties("", sourceOptionValue);
 						validateCommandOptions(isTypeOption, isSourceOption, typeOptionValue, sourceOptionValue);
 						
 						if("api".equalsIgnoreCase(typeOptionValue)) {
@@ -138,6 +145,57 @@ public class Main {
 		}
 		if(!("from".equalsIgnoreCase(sourceOptionValue) || "to".equalsIgnoreCase(sourceOptionValue))) {
 			printHelp();
+		}
+	}
+	
+	private void validateApplicationProperties(final String option, final String source) {
+		String msg = "Property %s cannot be blank.%n";
+		StringBuilder errorMsg = new StringBuilder();
+		Formatter fmt = new Formatter(errorMsg);
+		
+		if("from".equals(source) || CommandLineUtil.MIGRATE_OUT_OPTION.equals(option)) {
+			if(StringUtils.isEmpty(props.getSrc().getClientId())) {
+				fmt.format(msg, "'portal.src.clientId'");
+			}
+			if(StringUtils.isEmpty(props.getSrc().getClientSecret())) {
+				fmt.format(msg, "'portal.src.clientSecret'");
+			}
+			if(StringUtils.isEmpty(props.getSrc().getTokenUrl())) {
+				fmt.format(msg, "'portal.src.tokenUrl'");
+			}
+			if(StringUtils.isEmpty(props.getSrc().getUrl())) {
+				fmt.format(msg, "'portal.src.url'");
+			}
+			if(CommandLineUtil.MIGRATE_OUT_OPTION.equals(option)) {
+				if(StringUtils.isEmpty(props.getApiUuids())) {
+					fmt.format(msg, "'portal.apiUuids'");
+				}
+				if(StringUtils.isEmpty(props.getDst().getProxyUrl())) {
+					fmt.format(msg, "'portal.dst.proxyUrl'");
+				}
+			}
+		} else if("to".equals(source) || CommandLineUtil.MIGRATE_IN_OPTION.equals(option)) {
+			if(StringUtils.isEmpty(props.getDst().getClientId())) {
+				fmt.format(msg, "'portal.dst.clientId'");
+			}
+			if(StringUtils.isEmpty(props.getDst().getClientSecret())) {
+				fmt.format(msg, "'portal.dst.clientSecret'");
+			}
+			if(StringUtils.isEmpty(props.getDst().getTokenUrl())) {
+				fmt.format(msg, "'portal.dst.tokenUrl'");
+			}
+			if(StringUtils.isEmpty(props.getDst().getUrl())) {
+				fmt.format(msg, "'portal.dst.url'");
+			}
+			if(CommandLineUtil.MIGRATE_IN_OPTION.equals(option)) {
+				if(StringUtils.isEmpty(props.getDst().getApiEulaUuid())) {
+					fmt.format(msg, "'portal.dst.apiEulaUuid'");
+				}
+			}
+		}
+		if(StringUtils.hasLength(errorMsg)) {
+			System.out.println(errorMsg);
+			System.exit(-1);
 		}
 	}
 

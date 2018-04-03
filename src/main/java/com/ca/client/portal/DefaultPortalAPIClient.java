@@ -61,6 +61,7 @@ public class DefaultPortalAPIClient {
 		String apiMetaData = null;
 		try {
 			String response = httpGet(url, token).getBody();
+			log.debug("API meta-data: {}", response);
 			apiMetaData = portalUtil.getAPIMetaData(response);
 		} catch(HttpStatusCodeException e) {
 			logAndThrowError(e);

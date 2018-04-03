@@ -77,6 +77,8 @@ public class PortalUtil {
 			objectNode.remove("InSync");
 			objectNode.remove("ServiceDisruption");
 			objectNode.remove("ApplicationUsage");
+			objectNode.remove("ApiGroupUsage");
+			objectNode.remove("OrgUuid");
 			objectNode.remove("OrganizationUsage");
 			objectNode.remove("Pending");
 			objectNode.remove("PossibleStatuses");
@@ -131,7 +133,7 @@ public class PortalUtil {
 		ObjectNode objectNode = (ObjectNode) node;
 		if(!apiExists) {
 			objectNode.remove("PortalStatus");
-		}
+		} 
 		//Update APIEulaUUid
 		objectNode.put("ApiEulaUuid", apiEulaUuid);
 		return node;

@@ -43,17 +43,21 @@ public class PortalMigrationUtility {
 	private void initializeTokens() {
 		String srcBaseTokenUrl = props.getSrc().getTokenUrl();
 		String dstBaseTokenUrl = props.getDst().getTokenUrl();
-		String srcTokenUrl = srcBaseTokenUrl + "&client_id=" + props.getSrc().getClientId() + "&client_secret=" + CryptoUtil.decrypt(props.getSrc().getClientSecret());
-		String dstTokenUrl = dstBaseTokenUrl + "&client_id=" + props.getDst().getClientId() + "&client_secret=" + CryptoUtil.decrypt(props.getDst().getClientSecret());
+		String srcTokenUrl;
+		String dstTokenUrl;
 
-		if(StringUtils.hasLength(srcBaseTokenUrl) ) {
+		if(StringUtils.hasLength(srcBaseTokenUrl) && StringUtils.hasLength(props.getSrc().getClientId()) 
+				&& StringUtils.hasLength(props.getSrc().getClientSecret())) {
 			log.debug("Started retreiving OAuth token for Source Portal");
+			srcTokenUrl = srcBaseTokenUrl + "&client_id=" + props.getSrc().getClientId() + "&client_secret=" + CryptoUtil.decrypt(props.getSrc().getClientSecret());
 			this.srcToken = portalClient.getOAuthAccessToken(srcTokenUrl);
 			log.debug("Finished retrieving OAuth {} token for Source Portal", srcToken);
 		}
 		
-		if(StringUtils.hasLength(dstBaseTokenUrl)) {
+		if(StringUtils.hasLength(dstBaseTokenUrl) && StringUtils.hasLength(props.getDst().getClientId()) 
+				&& StringUtils.hasLength(props.getDst().getClientSecret())) {
 			log.debug("Started retreiving OAuth token for Destination Portal");
+			dstTokenUrl = dstBaseTokenUrl + "&client_id=" + props.getDst().getClientId() + "&client_secret=" + CryptoUtil.decrypt(props.getDst().getClientSecret());
 			this.dstToken = portalClient.getOAuthAccessToken(dstTokenUrl);
 			log.debug("Finished retrieving OAuth {} token for Destination Portal", dstToken);
 		}
@@ -146,6 +150,7 @@ public class PortalMigrationUtility {
 			}
 		} catch(Exception e) {
 			log.error("Process terminated, Exception: {}", e.getMessage());
+			//e.printStackTrace();
 		}
 	}
 
