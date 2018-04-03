@@ -1,19 +1,15 @@
 package com.ca.client.config;
 
-import javax.validation.Valid;
-
-import org.hibernate.validator.constraints.NotEmpty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.validation.annotation.Validated;
 
-@Validated
+//@Validated
 @ConfigurationProperties(prefix="portal")
 public class ConfigProperties {
-	@NotEmpty
+	//@NotEmpty
 	private String apiUuids;
-	@Valid
+	//@Valid
 	private Src src = new Src();
-	@Valid
+	//@Valid
 	private Dst dst = new Dst();
 	
 	public String getApiUuids() {
@@ -41,13 +37,13 @@ public class ConfigProperties {
 	}
 
 	public class Src {
-		@NotEmpty
+		//@NotEmpty
 		private String url;
-		@NotEmpty
+		//@NotEmpty
 		private String clientId;
-		@NotEmpty
+		//@NotEmpty
 		private String clientSecret;
-		@NotEmpty
+		//@NotEmpty
 		private String tokenUrl;
 
 		public String getUrl() {
@@ -85,19 +81,19 @@ public class ConfigProperties {
 	}
 	
 	public class Dst {
-		@NotEmpty
+		//@NotEmpty
 		private String url;
-		@NotEmpty
+		//@NotEmpty
 		private String apiEulaUuid;
 		//@NotEmpty
 		private String proxyUuid;
-		@NotEmpty
+		//@NotEmpty
 		private String proxyUrl;
-		@NotEmpty
+		//@NotEmpty
 		private String clientId;
-		@NotEmpty
+		//@NotEmpty
 		private String clientSecret;
-		@NotEmpty
+		//@NotEmpty
 		private String tokenUrl;
 		
 		public String getUrl() {

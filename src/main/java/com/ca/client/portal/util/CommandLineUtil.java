@@ -19,11 +19,19 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class CommandLineUtil {
-	public final static String MIGRATE_OPTION = "migrate";
+	public final static String MIGRATE_OUT_OPTION = "migrateOut";
+	public final static String MIGRATE_IN_OPTION = "migrateIn";
 	public final static String ENCODE_PASSWORD_OPTION = "encodePassword";
 	public final static String LIST_OPTION = "list";
 	public final static String TYPE_OPTION = "type";
 	public final static String SOURCE_OPTION = "source";
+	
+	private static final String HELP_ENCODE_PASSWORD_OPTION = "Encode password";
+	private final static String HELP_MIGRATE_OUT_OPTION = "Export API(s) from source portal to a file.";
+	private final static String HELP_MIGRATE_IN_OPTION = "Import API(s) from a specified file to destination portal.";
+	private static final String HELP_LIST_OPTION = "List api|eula|proxy on source or destination portal.";
+	private static final String HELP_TYPE_OPTION = "api|proxy|eula, used together with list option i.e. --list --type api or --list --type proxy.";
+	private static final String HELP_SOURCE_OPTION = "from|to, used together with list and type option i.e. --list --type api --source from";
 	private Options options;
 	
 	
@@ -33,18 +41,21 @@ public class CommandLineUtil {
 	 */
 	@PostConstruct
 	private void initializeOptions() {
-		final Option migrateOption = Option.builder("m").required(false).hasArg(false).longOpt(MIGRATE_OPTION)
-				.desc("Migrate APIs from source to destination portal as specified in application.properties.").build();
+		final Option migrateOutOption = Option.builder("o").required(false).longOpt(MIGRATE_OUT_OPTION).hasArg()
+				.desc(HELP_MIGRATE_OUT_OPTION).build();
+		final Option migrateInOption = Option.builder("i").required(false).longOpt(MIGRATE_IN_OPTION).hasArg()
+				.desc(HELP_MIGRATE_IN_OPTION).build();
 		final Option encPasswordOption = Option.builder("e").required(false).hasArg(false).longOpt(ENCODE_PASSWORD_OPTION)
-				.desc("Encode password").build();
+				.desc(HELP_ENCODE_PASSWORD_OPTION).build();
 		final Option listOption = Option.builder("l").required(false).hasArg(false).longOpt(LIST_OPTION)
-				.desc("List apis or proxies on source or destination portal.").build();
+				.desc(HELP_LIST_OPTION).build();
 		final Option typeOption = Option.builder("t").required(false).longOpt(TYPE_OPTION).hasArg()
-				.desc("api|proxy|eula, used together with list option i.e. --list --type api or --list --type proxy.").build();
+				.desc(HELP_TYPE_OPTION).build();
 		final Option sourceOption = Option.builder("s").required(false).longOpt(SOURCE_OPTION).hasArg()
-				.desc("from|to, used together with list and type option i.e. --list --type api --source from").build();
+				.desc(HELP_SOURCE_OPTION).build();
 		OptionGroup optionGroup = new OptionGroup();
-		optionGroup.addOption(migrateOption);
+		optionGroup.addOption(migrateOutOption);
+		optionGroup.addOption(migrateInOption);
 		optionGroup.addOption(encPasswordOption);
 		optionGroup.addOption(listOption);
 		this.options = new Options();

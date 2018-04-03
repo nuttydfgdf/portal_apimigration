@@ -78,14 +78,17 @@ public class Main {
 				if (commandLine != null) {
 					final boolean isEncPasswordOption = commandLine.hasOption(CommandLineUtil.ENCODE_PASSWORD_OPTION);
 					final boolean isListOption = commandLine.hasOption(CommandLineUtil.LIST_OPTION);
-					final boolean isMigrateOption = commandLine.hasOption(CommandLineUtil.MIGRATE_OPTION);
+					final boolean isMigrateOutOption = commandLine.hasOption(CommandLineUtil.MIGRATE_OUT_OPTION);
+					final boolean isMigrateInOption = commandLine.hasOption(CommandLineUtil.MIGRATE_IN_OPTION);
 					final boolean isTypeOption = commandLine.hasOption(CommandLineUtil.TYPE_OPTION);
 					final boolean isSourceOption = commandLine.hasOption(CommandLineUtil.SOURCE_OPTION);
 					
 					if(isEncPasswordOption) {
 						migrationUtil.encodePassword();
-					} else if(isMigrateOption) {
-						migrationUtil.runMigration();
+					} else if(isMigrateOutOption) {
+						runMigration(commandLine, CommandLineUtil.MIGRATE_OUT_OPTION);
+					} else if(isMigrateInOption) {
+						runMigration(commandLine, CommandLineUtil.MIGRATE_IN_OPTION);
 					} else if(isListOption) {
 						String typeOptionValue = StringUtils.trimWhitespace(commandLine.getOptionValue(CommandLineUtil.TYPE_OPTION));
 						String sourceOptionValue = StringUtils.trimWhitespace(commandLine.getOptionValue(CommandLineUtil.SOURCE_OPTION));
@@ -106,6 +109,24 @@ public class Main {
 		};
 	}
 
+	/**
+	 * @param commandLine
+	 * @param option
+	 */
+	private void runMigration(CommandLine commandLine, String option) {
+		String optionValue = StringUtils.trimWhitespace(commandLine.getOptionValue(option));
+		if(!StringUtils.hasLength(optionValue)) {
+			printHelp();
+		}
+		migrationUtil.runMigration(option, optionValue);
+	}
+
+	/**
+	 * @param isTypeOption
+	 * @param isSourceOption
+	 * @param typeOptionValue
+	 * @param sourceOptionValue
+	 */
 	private void validateCommandOptions(final boolean isTypeOption, final boolean isSourceOption,
 			String typeOptionValue, String sourceOptionValue) {
 		if (!isTypeOption || !isSourceOption) {
@@ -120,6 +141,9 @@ public class Main {
 		}
 	}
 
+	/**
+	 * Print help for the command line usage
+	 */
 	private void printHelp() {
 		commandLineUtil.printUsage();
 		commandLineUtil.printHelp();
