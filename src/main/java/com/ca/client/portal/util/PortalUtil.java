@@ -83,6 +83,16 @@ public class PortalUtil {
 			objectNode.remove("Pending");
 			objectNode.remove("PossibleStatuses");
 			
+			// Check if backendAPIURL is configured for this Uuid and replace it with configured value
+			String apiUuid = objectNode.get("Uuid").asText();
+			String backendAPIUrl = props.getDst().getBackendAPIUrlMap().get(apiUuid);
+			if(!StringUtils.isEmpty(backendAPIUrl)) {
+				log.debug("Replacing {} with {}", objectNode.get("ApiLocationUrl"), backendAPIUrl);
+				objectNode.put("ApiLocationUrl", backendAPIUrl);
+			} else {
+				log.warn("Skipping replacing of backend API URL as it's not configured");
+			}
+			
 			//Add base64 encoded swagger specs
 			if(!StringUtils.isEmpty(apiSpecPayload)) {
 				ObjectMapper swaggerMapper = new ObjectMapper();
