@@ -163,7 +163,7 @@ public class PortalMigrationUtility {
 		String apiEulaUuid = props.getDst().getApiEulaUuid();
 		
 		apiPayloadMap.forEach((apiUuid, node) -> {
-			log.debug("{} , {}", apiUuid, node.toString());
+			//log.debug("{} , {}", apiUuid, node.toString());
 			log.info("Publishing API for uuid: {}", apiUuid);
 			String postAPIResponse;
 			String dstApiUrl = dstBaseUrl + "/2.0/Apis('"+ apiUuid + "')";
@@ -171,7 +171,9 @@ public class PortalMigrationUtility {
 			// Check if API exists on destination portal
 			boolean isDstAPIExists = portalClient.checkAPIExists(dstApiUrl, this.dstToken);
 			log.info("API with uuid {} exists on destination portal: {}", apiUuid, isDstAPIExists);	
+			log.debug("Replacing API Eula Uuid with {}", apiEulaUuid);
 			JsonNode apiPayloadForImport = portalUtil.prepareAPIPayloadForImport(node, apiEulaUuid, isDstAPIExists);
+			log.debug("Api Json for create/update: {}", apiPayloadForImport.toString());
 			if(isDstAPIExists) {
 				postAPIResponse = portalClient.updateAPI(dstApiUrl, this.dstToken, apiPayloadForImport.toString());
 			} else {
