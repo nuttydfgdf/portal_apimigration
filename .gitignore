@@ -11,6 +11,7 @@ target/
 mvnw
 mvnw.cmd
 .mvn
+portalapimigration.log
 
 ### IntelliJ IDEA ###
 .idea

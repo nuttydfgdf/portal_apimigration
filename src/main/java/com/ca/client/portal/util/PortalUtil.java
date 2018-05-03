@@ -48,15 +48,21 @@ public class PortalUtil {
 	 * @param apiPayloadList
 	 * @return
 	 */
-	public String prepareAPIPayloadWrapperForExport(List<JsonNode> apiPayloadList) {
+	public String prepareAPIPayloadWrapperForExport(List<JsonNode> apiPayloadList, List<JsonNode> customFieldsList) {
 		ObjectMapper exportObjectMapper = new ObjectMapper();
 		ObjectNode rootNode = exportObjectMapper.createObjectNode();
-		ArrayNode arrayNode = exportObjectMapper.createArrayNode();
+		ArrayNode apiArrayNode = exportObjectMapper.createArrayNode();
+		ArrayNode customFieldArrayNode = exportObjectMapper.createArrayNode();
 		apiPayloadList.forEach(apiPayload -> {
-			log.debug("apiPayload: {}", apiPayload);
-			arrayNode.add(apiPayload);
+			log.trace("apiPayload: {}", apiPayload);
+			apiArrayNode.add(apiPayload);
 		});
-		rootNode.set("apiPayload", arrayNode);
+		customFieldsList.forEach(customField -> {
+			log.trace("customField: {}", customField);
+			customFieldArrayNode.add(customField);
+		});
+		rootNode.set("apiPayload", apiArrayNode);
+		rootNode.set("customFieldPayload", customFieldArrayNode);
 		return rootNode.toString();
 	}
 	
@@ -92,7 +98,6 @@ public class PortalUtil {
 			} else {
 				log.warn("Skipping replacing of backend API URL as it's not configured");
 			}
-			
 			//Add base64 encoded swagger specs
 			if(!StringUtils.isEmpty(apiSpecPayload)) {
 				ObjectMapper swaggerMapper = new ObjectMapper();
@@ -107,6 +112,26 @@ public class PortalUtil {
 		}
 		return rootNode;
 	}
+	
+	/**
+	 * @param customField
+	 * @return
+	 */
+	public JsonNode prepareCustomFieldForExport(String customField) {
+		JsonNode rootNode;
+		try {
+			ObjectMapper mapper = new ObjectMapper();
+			rootNode = mapper.readTree(customField);
+			ObjectNode objectNode = (ObjectNode) rootNode;
+			//Remove following json nodes
+			objectNode.remove("__metadata");
+
+		} catch (UnsupportedOperationException|IOException e) {
+			log.error("Error preparing CustomField: {}", e.getMessage());
+			throw new PortalAPIRuntimeException(e.getMessage());
+		}
+		return rootNode;
+	}	
 	/**
 	 * @param apiPayload
 	 * @return
@@ -128,6 +153,32 @@ public class PortalUtil {
 			
 		} catch (IOException e) {
 			log.error("Error preparing API Payload map for import: {}", e.getMessage());
+			throw new PortalAPIRuntimeException(e.getMessage());
+		}
+		return apiPayloadMap;
+	}
+	
+	/**
+	 * @param apiPayload
+	 * @return
+	 */
+	public Map<String, JsonNode> prepareCustomFieldMapForImport(String apiPayload) {
+		Map<String, JsonNode> apiPayloadMap = new HashMap<String, JsonNode>();
+		ObjectMapper mapper = new ObjectMapper();
+		try {
+			JsonNode rootNode = mapper.readTree(apiPayload);
+			ArrayNode customFieldPayloadArrayNode = (ArrayNode)rootNode.get("customFieldPayload");
+			
+			if(customFieldPayloadArrayNode.isArray() && customFieldPayloadArrayNode.size() > 0) {
+				Iterator<JsonNode> itr = customFieldPayloadArrayNode.iterator();
+				itr.forEachRemaining(node -> {
+					String customFieldUuid = node.get("Uuid").asText().replaceAll("\"", "");
+					apiPayloadMap.put(customFieldUuid, node);
+				});
+			}
+			
+		} catch (IOException e) {
+			log.error("Error preparing CustomField map for import: {}", e.getMessage());
 			throw new PortalAPIRuntimeException(e.getMessage());
 		}
 		return apiPayloadMap;

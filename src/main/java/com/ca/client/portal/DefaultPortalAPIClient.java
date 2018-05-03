@@ -49,6 +49,16 @@ public class DefaultPortalAPIClient {
 		return response;
 	}
 
+	public String getCustomField(String url, String token) {
+		String response = null;
+		try {
+			response = httpGet(url, token).getBody();
+		} catch (HttpStatusCodeException e) {
+			logAndThrowError(e);
+		}
+		return response;
+	}
+	
 	public String getAPIMetaData(String url, String token) {
 		String apiMetaData = null;
 		try {
@@ -120,6 +130,20 @@ public class DefaultPortalAPIClient {
 		}
 		return apiExists;
 	}
+	
+	public boolean checkCustomFieldExists(String url, String token) {
+		boolean customFieldExists = true;
+		try {
+			ResponseEntity<String> response = httpGet(url, token);
+		} catch (HttpStatusCodeException e) {
+			if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
+				customFieldExists = false;
+			} else {
+				logAndThrowError(e);
+			}
+		}
+		return customFieldExists;
+	}
 
 	public String postAPI(String url, String token, String requestPayload) {
 		String response = null;
@@ -130,8 +154,28 @@ public class DefaultPortalAPIClient {
 		}
 		return response;
 	}
+	
+	public String postCustomField(String url, String token, String requestPayload) {
+		String response = null;
+		try {
+			response = httpCreateOrUpdate(url, token, requestPayload, HttpMethod.POST);
+		} catch (HttpStatusCodeException e) {
+			logAndThrowError(e);
+		}
+		return response;
+	}
 
 	public String updateAPI(String url, String token, String requestPayload) {
+		String response = null;
+		try {
+			response = httpCreateOrUpdate(url, token, requestPayload, HttpMethod.PUT);
+		} catch (HttpStatusCodeException e) {
+			logAndThrowError(e);
+		}
+		return response;
+	}
+	
+	public String updateCustomField(String url, String token, String requestPayload) {
 		String response = null;
 		try {
 			response = httpCreateOrUpdate(url, token, requestPayload, HttpMethod.PUT);

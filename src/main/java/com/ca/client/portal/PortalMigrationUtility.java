@@ -5,6 +5,7 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -22,6 +23,7 @@ import com.ca.client.portal.util.CommandLineUtil;
 import com.ca.client.portal.util.CryptoUtil;
 import com.ca.client.portal.util.PortalUtil;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
 @Component
 public class PortalMigrationUtility {
@@ -130,12 +132,14 @@ public class PortalMigrationUtility {
 			
 			if(CommandLineUtil.MIGRATE_OUT_OPTION.equals(option)) {
 				List<JsonNode> apiPayloadList = new ArrayList<JsonNode>();
+				List<JsonNode> customFieldsList = new ArrayList<JsonNode>();
 				Arrays.asList(props.getApiUuids().split(",")).forEach(apiUuid -> {
 					log.info("==================Exporting API, Uuid: {} ====================", apiUuid);
-					apiPayloadList.add(getApiPayloadForExport(StringUtils.trimWhitespace(apiUuid)));
-
+					JsonNode apiPayloadForExport = getApiPayloadForExport(StringUtils.trimWhitespace(apiUuid));
+					apiPayloadList.add(apiPayloadForExport);
+					customFieldsList.addAll(getCustomFieldsForExport(apiPayloadForExport));
 				});
-				String apiPayloadForExport = portalUtil.prepareAPIPayloadWrapperForExport(apiPayloadList);
+				String apiPayloadForExport = portalUtil.prepareAPIPayloadWrapperForExport(apiPayloadList, customFieldsList);
 				File exportFile = new File(fileName);
 				FileUtils.writeStringToFile(exportFile, apiPayloadForExport, StandardCharsets.UTF_8.name());
 				log.info("==================Finished Exporting API(s)====================");
@@ -144,6 +148,8 @@ public class PortalMigrationUtility {
 				log.info("=====================Importing API(s) =============================");
 				File importFile = new File(fileName);
 				String apiPayloadForImport = FileUtils.readFileToString(importFile, StandardCharsets.UTF_8.name());
+				Map<String, JsonNode> customFieldMap = portalUtil.prepareCustomFieldMapForImport(apiPayloadForImport);
+				publishCustomField(customFieldMap);
 				Map<String, JsonNode> apiPayloadMap = portalUtil.prepareAPIPayloadMapForImport(apiPayloadForImport);
 				publishAPI(apiPayloadMap);
 				log.info("=====================Finished importing API(s) =============================");
@@ -184,6 +190,31 @@ public class PortalMigrationUtility {
 	}
 	
 	/**
+	 * @param customFieldMap
+	 */
+	private void publishCustomField(Map<String, JsonNode> customFieldMap) {
+		String dstBaseUrl = props.getDst().getUrl();
+		String dstPostCustomFieldUrl = dstBaseUrl + "/CustomFields";
+		
+		customFieldMap.forEach((customFieldUuid, node) -> {
+			//log.debug("{} , {}", apiUuid, node.toString());
+			log.info("Creating/Updating Custom Field for uuid: {}", customFieldUuid);
+			String customFieldResponse;
+			String dstCustomFieldUrlByUuid = dstBaseUrl + "/CustomFields('"+ customFieldUuid + "')";
+			
+			// Check if custom field exists on destination portal
+			boolean isDstCustomFieldExists = portalClient.checkCustomFieldExists(dstCustomFieldUrlByUuid, this.dstToken);
+			log.info("Custom Field with uuid {} exists on destination portal: {}", customFieldUuid, isDstCustomFieldExists);	
+			log.debug("CustomField Json for create/update: {}", node.toString());
+			if(isDstCustomFieldExists) {
+				customFieldResponse = portalClient.updateCustomField(dstCustomFieldUrlByUuid, this.dstToken, node.toString());
+			} else {
+				customFieldResponse = portalClient.postCustomField(dstPostCustomFieldUrl, this.dstToken, node.toString());
+			}
+			log.debug("POST/PUT CustomField Response: {}", customFieldResponse);
+		});
+	}
+	/**
 	 * @param apiUuid
 	 * @return API payload for the specified API Uuid
 	 */
@@ -209,6 +240,33 @@ public class PortalMigrationUtility {
 		
 		JsonNode postAPIPayload = portalUtil.prepareAPIPayLoadForExport(api, apiSpec);
 		return postAPIPayload;
+	}
+	
+	/**
+	 * @param rootAPINode
+	 * @return
+	 */
+	private List<JsonNode> getCustomFieldsForExport(JsonNode rootAPINode) {
+		String srcBaseUrl = props.getSrc().getUrl();
+		List<JsonNode> customFieldsList = new ArrayList<JsonNode>();
+		
+		ArrayNode customFieldsArray = (ArrayNode)rootAPINode.get("CustomFieldValues").get("results");
+		if(customFieldsArray.isArray() && customFieldsArray.size() > 0) {
+			Iterator<JsonNode> itr = customFieldsArray.iterator();
+			itr.forEachRemaining(node -> {
+				String customFieldUuid = node.get("CustomFieldUuid").asText();
+				String srcCustomFieldUrl = srcBaseUrl + "/CustomFields('"+ customFieldUuid + "')";
+				log.info("Retreiving CustomField data for uuid: {}", customFieldUuid);
+				String customField = portalClient.getCustomField(srcCustomFieldUrl, this.srcToken);
+				JsonNode customFieldNodeForExport = portalUtil.prepareCustomFieldForExport(customField);
+				log.debug("Custom field: {}", customFieldNodeForExport.toString());
+				customFieldsList.add(customFieldNodeForExport);
+				log.info("Finished retrieving CustomField data for uuid: {}", customFieldUuid);
+			});
+		} else {
+			log.info("No custom fields found for this API");
+		}
+		return customFieldsList;
 	}
 	
 	/*
